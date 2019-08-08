@@ -21,6 +21,7 @@ optional arguments:
 ```
 Example: ```python pdf2json.py -p tests```
 
+#### Directory Structure
     .
     └── tests                   # this directory contains pdf files 
     |   ├── file1.pdf
@@ -39,6 +40,7 @@ optional arguments:
 ```
 Example: ```python visualize.py -p tests```
 
+#### Directory Structure for Visualize
     .
     ├── tests                   # this directory contains pdf files 
     |   ├── tessblocks          # directory contains JSON files generated from above script 
