@@ -59,7 +59,7 @@ def getDataForJson(df_ocr, page_image, page_num, output_data):
                                     and not str(line_row["text"]).isspace()
                                     and line_row["level"] == 5 ):
                                     # concatenate the words text into one line
-                                    text += " " + line_row["text"]
+                                    text += " " + str(line_row["text"])
 
                             # replace unicode characters from text to nearly ascii characters
                             line_dict["text"] = unidecode(text[1:])
