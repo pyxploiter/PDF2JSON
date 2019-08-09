@@ -110,43 +110,44 @@ if __name__ == "__main__":
         print("File Path:", file)
         pdf_file_name = file.split("/")[-1][:-4]
 
-        # convert pdf file to images
-        pages = pdf2image.convert_from_path(file)
-        data = {}
-        data["blocks"] = []
+        if not os.path.isfile(os.path.join(block_dir, pdf_file_name + ".json")):
+	        # convert pdf file to images
+	        pages = pdf2image.convert_from_path(file)
+	        data = {}
+	        data["blocks"] = []
 
-        # loop through every page image
-        for page_no, page in enumerate(pages):
-            print("Page No: " + str(page_no + 1) + "/" + str(len(pages)))
-            img = np.array(page)
+	        # loop through every page image
+	        for page_no, page in enumerate(pages):
+	            print("Page No: " + str(page_no + 1) + "/" + str(len(pages)))
+	            img = np.array(page)
 
-            try:
-                # extracting ocra data from image
-                ocr_data = pytesseract.image_to_data(
-                    img, output_type=pytesseract.Output.DATAFRAME
-                )
-            except:
-                print("OCR Failed.")
-                continue
+	            try:
+	                # extracting ocra data from image
+	                ocr_data = pytesseract.image_to_data(
+	                    img, output_type=pytesseract.Output.DATAFRAME
+	                )
+	            except:
+	                print("OCR Failed.")
+	                continue
 
-            # get the data dictionary for json file
-            data = getDataForJson(ocr_data, img, page_no, data)
+	            # get the data dictionary for json file
+	            data = getDataForJson(ocr_data, img, page_no, data)
 
-            # save output images with bounding boxes
-            if args.debug:
-                debug_dir = os.path.join(args.pdf_files_dir, "debug")
-                # creating debug directory
-                if not os.path.exists(debug_dir):
-                    os.mkdir(debug_dir)
-                # creating directory for each pdf file
-                imgs_dir = os.path.join(debug_dir, pdf_file_name)
-                if not os.path.exists(imgs_dir):
-                    os.mkdir(imgs_dir)
-                img_path = os.path.join(
-                    imgs_dir, pdf_file_name + "_Page" + str(page_no + 1) + ".png"
-                )
-                cv2.imwrite(img_path, img)
+	            # save output images with bounding boxes
+	            if args.debug:
+	                debug_dir = os.path.join(args.pdf_files_dir, "debug")
+	                # creating debug directory
+	                if not os.path.exists(debug_dir):
+	                    os.mkdir(debug_dir)
+	                # creating directory for each pdf file
+	                imgs_dir = os.path.join(debug_dir, pdf_file_name)
+	                if not os.path.exists(imgs_dir):
+	                    os.mkdir(imgs_dir)
+	                img_path = os.path.join(
+	                    imgs_dir, pdf_file_name + "_Page" + str(page_no + 1) + ".png"
+	                )
+	                cv2.imwrite(img_path, img)
 
-        # writing python dictionary to json file
-        with open(os.path.join(block_dir, pdf_file_name + ".json"), "w") as f:
-            json.dump(data, f)
+	        # writing python dictionary to json file
+	        with open(os.path.join(block_dir, pdf_file_name + ".json"), "w") as f:
+	            json.dump(data, f)

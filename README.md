@@ -43,7 +43,7 @@ Example: ```python visualize.py -p tests```
 #### Directory Structure for Visualize
     .
     ├── tests                   # this directory contains pdf files 
-    |   ├── tessblocks          # directory contains JSON files generated from above script 
+    |   ├── tesseractJSON       # directory contains JSON files generated from above script 
     |   |   ├── file1.json
     |   |   ├── file2.json
     |   |   ...                 # etc
