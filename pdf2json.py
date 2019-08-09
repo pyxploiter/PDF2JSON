@@ -15,12 +15,14 @@ def getDataForJson(df_ocr, page_image, page_num, output_data):
     # grouping blocks of text using ocr data
     block_group = df_ocr.groupby(["block_num"])
 
+    blk_no = 0
     for block_no, block in block_group:
         if block["level"].size > 1:
             par_group = block.groupby(["par_num"])
 
             for par_no, par in par_group:
                 if par["level"].size > 1:
+                    blk_no += 1
                     block_dict = {}
                     topL = {}
                     bottomR = {}
@@ -39,7 +41,7 @@ def getDataForJson(df_ocr, page_image, page_num, output_data):
 
                     line_group = par.groupby(["line_num"])
                     block_dict["textlines"] = []
-
+                    flag = False
                     for line_no, line in line_group:
                         # check if line isn't NaN
                         if len(line["text"].str.cat()) > 0:
@@ -64,13 +66,19 @@ def getDataForJson(df_ocr, page_image, page_num, output_data):
                             # replace unicode characters from text to nearly ascii characters
                             line_dict["text"] = unidecode(text[1:])
                             block_dict["textlines"].append(line_dict)
+                            flag = True if len(line_dict["text"])>0 else False
 
-                    block_dict["id"] = "P" + str(page_num) + "B" + str(par_no)
+                    block_dict["id"] = "P" + str(page_no) + "B" + str(blk_no)
                     block_dict["page"] = page_num + 1
                     block_dict.update(bottomR)
                     block_dict["font"] = ""
 
-                    output_data["blocks"].append(block_dict)
+                    if flag:
+                        output_data["blocks"].append(block_dict)
+                        # if block has no text lines (empty block)
+                    else:
+                        blk_no -= 1
+                        # output_data["blocks"].append(block_dict)
     return output_data
 
 
@@ -92,7 +100,7 @@ if __name__ == "__main__":
     print(args)
 
     # creating blocks directory to store json files
-    block_dir = os.path.join(args.pdf_files_dir, "tessblocks")
+    block_dir = os.path.join(args.pdf_files_dir, "tesseractJSON")
     if not os.path.exists(block_dir):
         os.mkdir(block_dir)
 
@@ -113,13 +121,13 @@ if __name__ == "__main__":
             img = np.array(page)
 
             try:
-	            # extracting ocra data from image
-    	        ocr_data = pytesseract.image_to_data(
-        	        img, output_type=pytesseract.Output.DATAFRAME
-            	)
+                # extracting ocra data from image
+                ocr_data = pytesseract.image_to_data(
+                    img, output_type=pytesseract.Output.DATAFRAME
+                )
             except:
-            	print("OCR Failed.")
-            	continue
+                print("OCR Failed.")
+                continue
 
             # get the data dictionary for json file
             data = getDataForJson(ocr_data, img, page_no, data)
