@@ -23,7 +23,7 @@ Example: ```python pdf2json.py -p tests```
 
 #### Directory Structure
     .
-    └── tests                   # this directory contains pdf files 
+    ├── tests                   # this directory contains pdf files 
     |   ├── file1.pdf
     |   ├── file2.pdf
     |   ├── file3.pdf
