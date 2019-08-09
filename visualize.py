@@ -33,7 +33,6 @@ def drawRects(jsonFile, images, ocr=False):
             os.path.join(image_dir, file_name + "_Page_" + str(page_no) + ".png"), img
         )
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -55,21 +54,21 @@ if __name__ == "__main__":
     pdf_files = glob(os.path.join(args.pdf_files_dir, "*.pdf"))
     
     json_blocks_path = os.path.join(args.pdf_files_dir, "blocks")
-    json_blocks_files = glob(json_blocks_path, "*.json")
+    json_blocks_files = glob(os.path.join(json_blocks_path, "*.json"))
 
-    json_tessblocks_path = os.path.join(args.pdf_files_dir, "tessblocks")
-    json_tessblocks_files = glob(json_tessblocks_path, "*.json")
+    json_tessblocks_path = os.path.join(args.pdf_files_dir, "tesseractJSON")
+    json_tessblocks_files = glob(os.path.join(json_tessblocks_path, "*.json"))
 
-    image_path = os.path.join(args.pdf_files_dir, "images")
+    image_path = os.path.join(args.pdf_files_dir, "blockImages")
     if not os.path.exists(image_path):
-        os.makedir(image_path)
+        os.mkdir(image_path)
 
     # process each pdf file
     for tessblock in json_tessblocks_files:
         # extracting file name from json file path
-        file_name = tessblock.split("/")[-1][:-4]
+        file_name = tessblock.split("/")[-1][:-5]
         # pdf file path
-        pdf_path = os.path.join(pdf_files_dir, file_name+".pdf")
+        pdf_path = os.path.join(args.pdf_files_dir, file_name+".pdf")
         print("Processing File: ", pdf_path)
         
         # convert pdf file to images
@@ -80,11 +79,13 @@ if __name__ == "__main__":
         image_dir = os.path.join(image_path, file_name)
         
         if not os.path.exists(image_dir):
-        	os.makedir(image_dir)
+        	os.mkdir(image_dir)
 
         # get json file name
         json_block_file = os.path.join(json_blocks_path, file_name + ".json")
 
-        drawRects(json_block_file, pages, ocr=False)
-        drawRects(tessblock, pages, ocr=True)
-
+        if (os.path.isfile(json_block_file)):
+            drawRects(json_block_file, pages, ocr=False)
+            drawRects(tessblock, pages, ocr=True)
+        else:
+            print("File not found: ", json_block_file)
