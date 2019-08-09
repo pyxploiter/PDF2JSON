@@ -111,11 +111,16 @@ if __name__ == "__main__":
         for page_no, page in enumerate(pages):
             print("Page No: " + str(page_no + 1) + "/" + str(len(pages)))
             img = np.array(page)
-            # extracting ocra data from image
-            ocr_data = pytesseract.image_to_data(
-                img, output_type=pytesseract.Output.DATAFRAME
-            )
 
+            try:
+	            # extracting ocra data from image
+    	        ocr_data = pytesseract.image_to_data(
+        	        img, output_type=pytesseract.Output.DATAFRAME
+            	)
+            except:
+            	print("OCR Failed.")
+            	exit(0)
+            	
             # get the data dictionary for json file
             data = getDataForJson(ocr_data, img, page_no, data)
 

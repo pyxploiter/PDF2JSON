@@ -53,27 +53,38 @@ if __name__ == "__main__":
 
     # directory listings
     pdf_files = glob(os.path.join(args.pdf_files_dir, "*.pdf"))
+    
     json_blocks_path = os.path.join(args.pdf_files_dir, "blocks")
+    json_blocks_files = glob(json_blocks_path, "*.json")
+
     json_tessblocks_path = os.path.join(args.pdf_files_dir, "tessblocks")
+    json_tessblocks_files = glob(json_tessblocks_path, "*.json")
+
     image_path = os.path.join(args.pdf_files_dir, "images")
-    os.makedirs(image_path)
+    if not os.path.exists(image_path):
+        os.makedir(image_path)
 
     # process each pdf file
-    for pdf in pdf_files:
-        print("Processing File: ", pdf)
+    for tessblock in json_tessblocks_files:
+        # extracting file name from json file path
+        file_name = tessblock.split("/")[-1][:-4]
+        # pdf file path
+        pdf_path = os.path.join(pdf_files_dir, file_name+".pdf")
+        print("Processing File: ", pdf_path)
+        
         # convert pdf file to images
-        pages = pdf2image.convert_from_path(pdf)
+        pages = pdf2image.convert_from_path(pdf_path)
         # convert PIL images to numpy arrays
         pages = list(map(np.array, pages))
 
-        file_name = pdf.split("/")[-1][:-4]
         image_dir = os.path.join(image_path, file_name)
-        os.makedirs(image_dir)
+        
+        if not os.path.exists(image_dir):
+        	os.makedir(image_dir)
 
         # get json file name
         json_block_file = os.path.join(json_blocks_path, file_name + ".json")
-        json_tessblock_file = os.path.join(json_tessblocks_path, file_name + ".json")
 
         drawRects(json_block_file, pages, ocr=False)
-        drawRects(json_tessblock_file, pages, ocr=True)
+        drawRects(tessblock, pages, ocr=True)
 
