@@ -119,8 +119,8 @@ if __name__ == "__main__":
             	)
             except:
             	print("OCR Failed.")
-            	exit(0)
-            	
+            	continue
+
             # get the data dictionary for json file
             data = getDataForJson(ocr_data, img, page_no, data)
 
