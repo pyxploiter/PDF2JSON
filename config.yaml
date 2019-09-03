@@ -1,0 +1,10 @@
+output_json_dir: "./outputJson"
+pdf_images_dir: "./pdfImages"
+debug_images_dir: "./debugImages"
+
+# For a list of supported language codes refer to following link:
+# https://github.com/tesseract-ocr/tesseract/wiki/Data-Files 
+language: eng
+
+# Current value set to default path. Can be changed to a custom directory
+tessdata: /usr/local/share/tessdata/
