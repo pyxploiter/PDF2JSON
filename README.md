@@ -23,10 +23,13 @@ optional arguments:
 
 ### Run for a pdf file
 
-Example: ```python pdf2json.py -i tests/example1.pdf```
+```example: python pdf2json.py -i tests/example1.pdf```
 
 ### Run for a folder containing pdf files
 
+```
 usage: ./run_for_folder.sh PATH/TO/FOLDER [-s] [-d]
-
-Example: ```./run_for_folder.sh tests -s -d```
+```
+```
+example: ./run_for_folder.sh tests -s -d
+```
