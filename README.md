@@ -21,15 +21,22 @@ optional arguments:
 
 ```
 
+Following parameters are loaded from ```config.yaml``` and may be edited there:
+  -output_json_dir:	Output directory for JSON files extracted from PDF files.
+  -pdf_images_dir:	Output directory for images extracted from PDF files.
+  -debug_images_dir:	Output directory for debug images. 
+  -language:		Language to be used for applying tesseract
+  -tessdata:		Directory containing the traineddata files for tesseract
+
 ### Run for a pdf file
 
 ```example: python pdf2json.py -i tests/example1.pdf```
 
-### Run for a folder containing pdf files
+### Run the python script for a batch of pdf files
 
 ```
-usage: ./run_for_folder.sh PATH/TO/FOLDER [-s] [-d]
+usage: ./run_batch.sh PATH/TO/FOLDER [-s] [-d]
 ```
 ```
-example: ./run_for_folder.sh tests -s -d
+example: ./run_batch.sh ./tests/ -s -d
 ```
