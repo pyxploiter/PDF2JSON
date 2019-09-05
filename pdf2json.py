@@ -219,16 +219,17 @@ if __name__ == "__main__":
             imageDir=configs["debug_images_dir"], fileName=pdf_file_name
         )
 
+    # In developer mode, script tries to download required traineddata if not found
     if args.dev:
         # check if given tessdata directory does not exist
         if not os.path.exists(configs["tessdata"]):
-            print_warning(configs["tessdata"] + " directory not found.")
+            print_warning("tessdata directory '"+ configs["tessdata"] + "' not found.")
             # check if local tessdata directory does not exist
             if not os.path.exists('tessdata'):
                 os.mkdir("tessdata")
             print("Setting the TESSDATA_PREFIX = ./tessdata/ \n")
             configs["tessdata"] = "./tessdata"
-            
+
         # download tesseract traineddata file for language if it doesn't exist
         if not os.path.isfile(
             os.path.join(
@@ -253,17 +254,19 @@ if __name__ == "__main__":
             cmd = (
                 "wget -O"
                 + os.path.join(
-                    os.environ["TESSDATA_PREFIX"], configs["language"] + ".traineddata"
+                    configs["tessdata"], configs["language"] + ".traineddata"
                 )
                 + " "
                 + url
             )
             os.system(cmd)
 
+    # if not in developer mode
     else:
+        # throw error if tessdata directory not found
         if not os.path.exists(configs["tessdata"]):
-            print_error(configs["tessdata"] + " directory not found.")
-
+            print_error("tessdata directory '"+ configs["tessdata"] + "' not found.")
+        # throw error if {lang}.traineddata not found
         elif not os.path.isfile(
             os.path.join(
                 configs["tessdata"], configs["language"] + ".traineddata"
@@ -275,6 +278,7 @@ if __name__ == "__main__":
                 + configs["tessdata"]
             )
 
+    # set TESSDATA_PREFIX environment variable
     os.environ["TESSDATA_PREFIX"] = configs["tessdata"]
 
     # creating blocks directory to store json files

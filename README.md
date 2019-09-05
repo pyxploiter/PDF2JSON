@@ -11,7 +11,7 @@ $ pip install -r requirements.txt
 
 ### Usage
 ```
-usage: pdf2json_v1.py [-h] -i PDF_FILE [-c CONFIG_FILE] [-s] [-d]
+usage: pdf2json.py [-h] -i PDF_FILE [-c CONFIG_FILE] [-s] [-d] [--dev]
 
 optional arguments:
   -h, --help         show this help message and exit
@@ -19,6 +19,7 @@ optional arguments:
   -c CONFIG_FILE     enter the path to config file
   -s, --save_images  save images of pdf file
   -d, --debug        turn on the debug mode
+  --dev              turn on the developer mode
 
 ```
 
