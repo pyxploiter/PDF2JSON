@@ -1,8 +1,10 @@
-"""MAIN SCRIPT THAT EXTRACTS THE BLOCKS OF TEXT FROM PDF FILES"""
+"""PDF2JSON: A script that extracts the blocks of text from PDF files["""
 import argparse
 import json
 from glob import glob
 import os
+import sys
+
 import cv2
 import pdf2image
 import pytesseract
@@ -10,11 +12,18 @@ import numpy as np
 from PIL import Image
 import yaml
 
+COLOR = {"ERROR": "\033[1;31m", "WARNING": "\033[1;35m", "RESET": '\033[0m'}
 
-def get_config():
-    """takes the configurations in yml form to be used in multiple operations"""
+def print_warning(message):
+    print(COLOR["WARNING"] + message + COLOR["RESET"], file=sys.stderr)
+
+def print_error(message):
+    print(COLOR["ERROR"] + message + COLOR["RESET"], file=sys.stderr)
+
+def get_config(configFilePath):
+    """read the yaml file which contains configuration for script"""
     configs = None
-    with open("config.yaml", "r") as stream:
+    with open(configFilePath, "r") as stream:
         try:
             configs = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
@@ -22,7 +31,7 @@ def get_config():
     return configs
 
 
-def create_dirs(imageDir=None, fileName=None):
+def create_dirs(imageDir, fileName):
     """ensures the creation of directories before using or accessing them"""
     pdf_file_name = fileName
     # creating debug directory
@@ -102,7 +111,7 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
                                         "y": line_row["top"] + line_row["height"],
                                     }
 
-                                # select the non-empty words having confidence > 10%
+                                # select the non-empty words
                                 if (
                                     line_row["conf"] > -1
                                     and not str(line_row["text"]).isspace()
@@ -122,10 +131,10 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
                     block_dict["page"] = page_num + 1
                     block_dict.update(bottomR)
                     block_dict["font"] = ""
+                    block_dict["image"] = pdf_file_name + "_Page" + str(page_num + 1) + ".png"
 
                     if flag:
                         output_data["blocks"].append(block_dict)
-                        # if block has no text lines (empty block)
                     else:
                         blk_no -= 1
     return output_data
@@ -139,6 +148,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "-c", dest="config_file", help="enter the path to config file", default="config.yaml"
+    )
+
+    parser.add_argument(
         "-s", "--save_images", help="save images of pdf file", action="store_true"
     )
 
@@ -146,14 +159,16 @@ if __name__ == "__main__":
         "-d", "--debug", help="turn on the debug mode", action="store_true"
     )
 
+    if len(sys.argv)==1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     args = parser.parse_args()
 
-    configs = get_config()
-
-    os.environ["TESSDATA_PREFIX"] = configs["tessdata"]
+    configs = get_config(args.config_file)
 
     file = args.pdf_file
-    print("File Path:", file)
+    
     pdf_file_name = file.split("/")[-1][:-4]
 
     if args.save_images:
@@ -166,8 +181,16 @@ if __name__ == "__main__":
             imageDir=configs["debug_images_dir"], fileName=pdf_file_name
         )
 
-    if not os.path.exists(os.environ["TESSDATA_PREFIX"]):
-        os.mkdir(os.environ["TESSDATA_PREFIX"])
+    # check if given tessdata directory does not exist
+    if not os.path.exists(configs["tessdata"]):
+        print_warning("Warning:" + configs["tessdata"] + " directory not found.")
+        # check if local tessdata directory does not exist
+        if not os.path.exists('tessdata'):
+            os.mkdir("tessdata")
+        print("Setting the TESSDATA_PREFIX = ./tessdata/ \n")
+        configs["tessdata"] = "./tessdata"
+    
+    os.environ["TESSDATA_PREFIX"] = configs["tessdata"]
 
     # creating blocks directory to store json files
     if not os.path.exists(configs["output_json_dir"]):
@@ -184,11 +207,16 @@ if __name__ == "__main__":
             os.environ["TESSDATA_PREFIX"], configs["language"] + ".traineddata"
         )
     ):
-        print(
-            configs["language"]
+        print_error(
+            "Error: "
+            + configs["language"]
             + ".traineddata not found in "
             + configs["tessdata"]
-            + ". Downloading file:"
+        )
+        print(
+            "Downloading "
+            + configs["language"] + ".traineddata "
+            + "file"
         )
         url = (
             "https://github.com/tesseract-ocr/tessdata_best/raw/master/"
@@ -196,7 +224,7 @@ if __name__ == "__main__":
             + ".traineddata"
         )
         cmd = (
-            "sudo wget -O"
+            "wget -O"
             + os.path.join(
                 os.environ["TESSDATA_PREFIX"], configs["language"] + ".traineddata"
             )
@@ -205,6 +233,7 @@ if __name__ == "__main__":
         )
         os.system(cmd)
 
+    print("File Path:", file)
     # loop through every page image
     for page_no, page in enumerate(pages):
         print("Page No: " + str(page_no + 1) + "/" + str(len(pages)))
@@ -223,7 +252,8 @@ if __name__ == "__main__":
                 img, lang=configs["language"], output_type=pytesseract.Output.DATAFRAME
             )
         except Exception as e:
-            print("OCR Failed:", e)
+            print_error("Error: OCR Failed on " + file.split("/")[-1] + " | Page No "+ str(page_no+1))
+            print("Trace:", e)
             continue
 
         # get the data dictionary for json file
