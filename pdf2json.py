@@ -15,10 +15,11 @@ import yaml
 COLOR = {"ERROR": "\033[1;31m", "WARNING": "\033[1;35m", "RESET": '\033[0m'}
 
 def print_warning(message):
-    print(COLOR["WARNING"] + message + COLOR["RESET"], file=sys.stderr)
+    print(COLOR["WARNING"] + "Warning: " + message + COLOR["RESET"], file=sys.stderr)
 
 def print_error(message):
-    print(COLOR["ERROR"] + message + COLOR["RESET"], file=sys.stderr)
+    print(COLOR["ERROR"] + "Error: " + message + COLOR["RESET"], file=sys.stderr)
+    exit(0)
 
 def get_config(configFilePath):
     """read the yaml file which contains configuration for script
@@ -192,6 +193,10 @@ if __name__ == "__main__":
         "-d", "--debug", help="turn on the debug mode", action="store_true"
     )
 
+    parser.add_argument(
+        "--dev", help="turn on the developer mode", action="store_true"
+    )
+
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -214,15 +219,62 @@ if __name__ == "__main__":
             imageDir=configs["debug_images_dir"], fileName=pdf_file_name
         )
 
-    # check if given tessdata directory does not exist
-    if not os.path.exists(configs["tessdata"]):
-        print_warning("Warning:" + configs["tessdata"] + " directory not found.")
-        # check if local tessdata directory does not exist
-        if not os.path.exists('tessdata'):
-            os.mkdir("tessdata")
-        print("Setting the TESSDATA_PREFIX = ./tessdata/ \n")
-        configs["tessdata"] = "./tessdata"
-    
+    if args.dev:
+        # check if given tessdata directory does not exist
+        if not os.path.exists(configs["tessdata"]):
+            print_warning(configs["tessdata"] + " directory not found.")
+            # check if local tessdata directory does not exist
+            if not os.path.exists('tessdata'):
+                os.mkdir("tessdata")
+            print("Setting the TESSDATA_PREFIX = ./tessdata/ \n")
+            configs["tessdata"] = "./tessdata"
+            
+        # download tesseract traineddata file for language if it doesn't exist
+        if not os.path.isfile(
+            os.path.join(
+                configs["tessdata"], configs["language"] + ".traineddata"
+            )
+        ):
+            print_warning(
+                configs["language"]
+                + ".traineddata not found in "
+                + configs["tessdata"]
+            )
+            print(
+                "Downloading "
+                + configs["language"] + ".traineddata "
+                + "file"
+            )
+            url = (
+                "https://github.com/tesseract-ocr/tessdata_best/raw/master/"
+                + configs["language"]
+                + ".traineddata"
+            )
+            cmd = (
+                "wget -O"
+                + os.path.join(
+                    os.environ["TESSDATA_PREFIX"], configs["language"] + ".traineddata"
+                )
+                + " "
+                + url
+            )
+            os.system(cmd)
+
+    else:
+        if not os.path.exists(configs["tessdata"]):
+            print_error(configs["tessdata"] + " directory not found.")
+
+        elif not os.path.isfile(
+            os.path.join(
+                configs["tessdata"], configs["language"] + ".traineddata"
+            )
+        ):
+            print_error(
+                configs["language"]
+                + ".traineddata not found in "
+                + configs["tessdata"]
+            )
+
     os.environ["TESSDATA_PREFIX"] = configs["tessdata"]
 
     # creating blocks directory to store json files
@@ -233,38 +285,6 @@ if __name__ == "__main__":
     pages = pdf2image.convert_from_path(file, dpi=300, fmt='png')
     data = {}
     data["blocks"] = []
-
-    # download tesseract traineddata file for language if it doesn't exist
-    if not os.path.isfile(
-        os.path.join(
-            os.environ["TESSDATA_PREFIX"], configs["language"] + ".traineddata"
-        )
-    ):
-        print_error(
-            "Error: "
-            + configs["language"]
-            + ".traineddata not found in "
-            + configs["tessdata"]
-        )
-        print(
-            "Downloading "
-            + configs["language"] + ".traineddata "
-            + "file"
-        )
-        url = (
-            "https://github.com/tesseract-ocr/tessdata_best/raw/master/"
-            + configs["language"]
-            + ".traineddata"
-        )
-        cmd = (
-            "wget -O"
-            + os.path.join(
-                os.environ["TESSDATA_PREFIX"], configs["language"] + ".traineddata"
-            )
-            + " "
-            + url
-        )
-        os.system(cmd)
 
     print("File Path:", file)
     # loop through every page image
@@ -285,7 +305,7 @@ if __name__ == "__main__":
                 img, lang=configs["language"], output_type=pytesseract.Output.DATAFRAME
             )
         except Exception as e:
-            print_error("Error: OCR Failed on " + file.split("/")[-1] + " | Page No "+ str(page_no+1))
+            print_error("OCR Failed on " + file.split("/")[-1] + " | Page No "+ str(page_no+1))
             print("Trace:", e)
             continue
 
