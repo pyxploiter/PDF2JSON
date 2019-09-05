@@ -37,7 +37,7 @@ Following parameters are loaded from ```config.yaml``` and may be edited there:
 ### Run the python script for a batch of pdf files
 
 ```
-usage: ./run_batch.sh PATH/TO/FOLDER [-s] [-d]
+usage: ./run_batch.sh PATH/TO/FOLDER [-c CONFIG_FILE] [-s] [-d] [--dev]
 ```
 ```
 example: ./run_batch.sh ./tests/ -s -d
