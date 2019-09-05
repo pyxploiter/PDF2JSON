@@ -21,7 +21,15 @@ def print_error(message):
     print(COLOR["ERROR"] + message + COLOR["RESET"], file=sys.stderr)
 
 def get_config(configFilePath):
-    """read the yaml file which contains configuration for script"""
+    """read the yaml file which contains configuration for script
+    
+    Keyword arguments:
+    configFilePath  -- path to configuration yaml file
+
+    Returns:
+    configs     -- dictionary containing the configurations from config file  
+
+    """
     configs = None
     with open(configFilePath, "r") as stream:
         try:
@@ -32,7 +40,17 @@ def get_config(configFilePath):
 
 
 def create_dirs(imageDir, fileName):
-    """ensures the creation of directories before using or accessing them"""
+    """ensures the creation of directories before using or accessing them
+    
+    Keyword arguments:
+    imageDir   -- path to directory where images of pdf files are to be stored
+    fileName   -- pdf file name
+
+    Returns:
+    imgs_dir   -- path to output directory of pdf file
+
+    """
+
     pdf_file_name = fileName
     # creating debug directory
     if not os.path.exists(imageDir):
@@ -44,15 +62,28 @@ def create_dirs(imageDir, fileName):
 
     return imgs_dir
 
-
 def extract_blocks(df_ocr, page_image, page_num, output_data):
-    """the main function that extracts the text blocks from the image"""
+    """the main function that extracts the text blocks from the image
+
+    Keyword arguments:
+    df_ocr      -- dataframe extracted after apply OCR on image 
+    page_image  -- image whose text blocks are being extracted
+    page_num    -- page number of pdf file
+    output_data -- dictionary where the blocks are stored, it contains data 
+                   of previous images of same file
+
+    Returns:
+    output_data -- dictionary that contains text blocks of given image
+
+    """
+    
     # grouping blocks of text using ocr data
     block_group = df_ocr.groupby(["block_num"])
-
+    # block number counter
     blk_no = 0
     for _, block in block_group:
         if block["level"].size > 1:
+            # grouping paragraphs by paragraph number
             par_group = block.groupby(["par_num"])
 
             for _, par in par_group:
@@ -61,8 +92,9 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
                     block_dict = {}
                     topL = {}
                     bottomR = {}
-
+                    # iterate through paragraphs
                     for _, par_row in par.iterrows():
+                        # level 3 contains bounding boxes of paragraphs
                         if par_row["level"] == 3:
                             topL["topleft"] = {
                                 "x": par_row["left"],
@@ -88,9 +120,10 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
 
                     # add top_left block point
                     block_dict.update(topL)
-
+                    # grouping the lines by line numbers
                     line_group = par.groupby(["line_num"])
                     block_dict["textlines"] = []
+                    # flag to check if block is empty
                     flag = False
                     for _, line in line_group:
                         # check if line isn't NaN
@@ -132,7 +165,7 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
                     block_dict.update(bottomR)
                     block_dict["font"] = ""
                     block_dict["image"] = pdf_file_name + "_Page" + str(page_num + 1) + ".png"
-
+                    # add block only if it is not empty
                     if flag:
                         output_data["blocks"].append(block_dict)
                     else:
@@ -197,7 +230,7 @@ if __name__ == "__main__":
         os.mkdir(configs["output_json_dir"])
 
     # convert pdf file to images
-    pages = pdf2image.convert_from_path(file)
+    pages = pdf2image.convert_from_path(file, dpi=300, fmt='png')
     data = {}
     data["blocks"] = []
 
