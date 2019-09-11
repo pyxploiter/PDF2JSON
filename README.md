@@ -24,11 +24,12 @@ optional arguments:
 ```
 
 Following parameters are loaded from ```config.yaml``` and may be edited there:
-  -output_json_dir:	Output directory for JSON files extracted from PDF files.
-  -pdf_images_dir:	Output directory for images extracted from PDF files.
-  -debug_images_dir:	Output directory for debug images. 
-  -language:		Language to be used for applying tesseract
-  -tessdata:		Directory containing the traineddata files for tesseract
+
+    -output_json_dir:	Output directory for JSON files extracted from PDF files.
+    -pdf_images_dir:	Output directory for images extracted from PDF files.
+    -debug_images_dir:	Output directory for debug images. 
+    -language:		Language to be used for applying tesseract
+    -tessdata:		Directory containing the traineddata files for tesseract
 
 ### Run for a pdf file
 
@@ -42,3 +43,4 @@ usage: ./run_batch.sh PATH/TO/FOLDER [-c CONFIG_FILE] [-s] [-d] [--dev]
 ```
 example: ./run_batch.sh ./tests/ -s -d
 ```
+
