@@ -4,6 +4,8 @@ import json
 from glob import glob
 import os
 import sys
+import concurrent.futures
+import time
 
 import cv2
 import pdf2image
@@ -12,6 +14,13 @@ import numpy as np
 from PIL import Image
 import yaml
 
+# number of cpu cores
+CPU_CORES = os.cpu_count()
+
+# disabling multithreading (one thread per cpu core)
+# reference: https://github.com/tesseract-ocr/tesseract/wiki/FAQ#can-i-increase-speed-of-ocr
+os.environ['OMP_THREAD_LIMIT'] = '1'
+
 COLOR = {"ERROR": "\033[1;31m", "WARNING": "\033[1;35m", "RESET": '\033[0m'}
 
 def print_warning(message):
@@ -19,16 +28,15 @@ def print_warning(message):
 
 def print_error(message):
     print(COLOR["ERROR"] + "Error: " + message + COLOR["RESET"], file=sys.stderr)
-    exit(0)
 
 def get_config(configFilePath):
     """read the yaml file which contains configuration for script
     
-    Keyword arguments:
-    configFilePath  -- path to configuration yaml file
+    Arguments:
+        configFilePath  -- path to configuration yaml file
 
     Returns:
-    configs     -- dictionary containing the configurations from config file  
+        configs     -- dictionary containing the configurations from config file  
 
     """
     configs = None
@@ -43,12 +51,12 @@ def get_config(configFilePath):
 def create_dirs(imageDir, fileName):
     """ensures the creation of directories before using or accessing them
     
-    Keyword arguments:
-    imageDir   -- path to directory where images of pdf files are to be stored
-    fileName   -- pdf file name
+    Arguments:
+        imageDir   -- path to directory where images of pdf files are to be stored
+        fileName   -- pdf file name
 
     Returns:
-    imgs_dir   -- path to output directory of pdf file
+        imgs_dir   -- path to output directory of pdf file
 
     """
 
@@ -66,15 +74,15 @@ def create_dirs(imageDir, fileName):
 def extract_blocks(df_ocr, page_image, page_num, output_data):
     """the main function that extracts the text blocks from the image
 
-    Keyword arguments:
-    df_ocr      -- dataframe extracted after apply OCR on image 
-    page_image  -- image whose text blocks are being extracted
-    page_num    -- page number of pdf file
-    output_data -- dictionary where the blocks are stored, it contains data 
-                   of previous images of same file
+    Arguments:
+        df_ocr      -- dataframe extracted after apply OCR on image 
+        page_image  -- image whose text blocks are being extracted
+        page_num    -- page number of pdf file
+        output_data -- dictionary where the blocks are stored, it contains data 
+                      of previous images of same file
 
     Returns:
-    output_data -- dictionary that contains text blocks of given image
+        output_data -- dictionary that contains text blocks of given image
 
     """
     
@@ -154,7 +162,6 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
                                     # concatenate the words text into one line
                                     text += " " + str(line_row["text"])
 
-                            # replace unicode characters from text to nearly ascii characters
                             line_dict["topleft"] = line_topL
                             line_dict["text"] = text[1:]
                             line_dict["bottomright"] = line_bottomR
@@ -173,6 +180,28 @@ def extract_blocks(df_ocr, page_image, page_num, output_data):
                         blk_no -= 1
     return output_data
 
+def ocr(page):
+
+    img = np.array(page)
+    try:
+        # extracting ocr data from image
+        ocr_data = pytesseract.image_to_data(
+            img, lang=configs["language"], output_type=pytesseract.Output.DATAFRAME
+        )
+
+        # osd = pytesseract.image_to_string(img, lang=configs["language"], config='--psm 1',)
+
+        # print(osd)
+
+        # ocr_data = pytesseract.image_to_data(
+        #     img, lang='eng+ell', output_type=pytesseract.Output.DATAFRAME
+        # )
+
+    except Exception as e:
+        print_error("OCR Failed on " + file.split("/")[-1] + " | Page No "+ str(page_no+1))
+        print("Trace:", e)
+
+    return ocr_data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -291,38 +320,32 @@ if __name__ == "__main__":
     data["blocks"] = []
 
     print("File Path:", file)
-    # loop through every page image
-    for page_no, page in enumerate(pages):
-        print("Page No: " + str(page_no + 1) + "/" + str(len(pages)))
-        img = np.array(page)
 
-        # save pdf images
-        if args.save_images:
-            img_path = os.path.join(
-                pdf_img_dir, pdf_file_name + "_Page" + str(page_no + 1) + ".png"
-            )
-            cv2.imwrite(img_path, img)
+    start = time.time()
+    with concurrent.futures.ProcessPoolExecutor(max_workers=CPU_CORES) as executor:
+        page_no = 0
+        # loop through every page image
+        for page, ocr_data in zip(pages, executor.map(ocr,pages)):
+            print("Page No: " + str(page_no + 1) + "/" + str(len(pages)))
+            img = np.array(page)
 
-        try:
-            # extracting ocra data from image
-            ocr_data = pytesseract.image_to_data(
-                img, lang=configs["language"], output_type=pytesseract.Output.DATAFRAME
-            )
-        except Exception as e:
-            print_error("OCR Failed on " + file.split("/")[-1] + " | Page No "+ str(page_no+1))
-            print("Trace:", e)
-            continue
+            # save pdf images
+            if args.save_images:
+                img_path = os.path.join(
+                    pdf_img_dir, pdf_file_name + "_Page" + str(page_no + 1) + ".png"
+                )
+                cv2.imwrite(img_path, img)
 
-        # get the data dictionary for json file
-        data = extract_blocks(ocr_data, img, page_no, data)
-
-        # save output images with bounding boxes
-        if args.debug:
-            img_path = os.path.join(
-                debug_img_dir, pdf_file_name + "_Page" + str(page_no + 1) + ".png"
-            )
-            cv2.imwrite(img_path, img)
-
+            # get the data dictionary for json file
+            data = extract_blocks(ocr_data, img, page_no, data)
+            
+            # save output images with bounding boxes
+            if args.debug:
+                img_path = os.path.join(
+                    debug_img_dir, pdf_file_name + "_Page" + str(page_no + 1) + ".png"
+                )
+                cv2.imwrite(img_path, img)
+            page_no+=1
     # writing python dictionary to json file
     with open(
         os.path.join(configs["output_json_dir"], pdf_file_name + ".json"),
@@ -330,3 +353,6 @@ if __name__ == "__main__":
         encoding="UTF-8",
     ) as f:
         json.dump(data, f, ensure_ascii=False)
+
+    end = time.time()
+    print("Time taken:", end-start)
