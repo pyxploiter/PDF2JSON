@@ -1,14 +1,23 @@
+#!/bin/bash
 if [ $# -gt 0 ]
 then
-  FILES="${1}/*.pdf"
-
-  for f in $FILES
+  DIR="$1"
+  # save and change IFS
+  OLDIFS=$IFS
+  IFS=$'\n'
+  # read all file name into an array
+  fileArray=($(find $DIR -type f))
+  # restore it
+  IFS=$OLDIFS
+  # get length of an array
+  tLen=${#fileArray[@]}
+  # use for loop read all filenames
+  for (( i=0; i<${tLen}; i++ ));
   do
-    python pdf2json.py -i $f "${@:2}"
+  	# run script on each pdf file
+    python pdf2json.py -i "${fileArray[$i]}" "${@:2}"
   done
 
 else
   echo "[Error] Folder path is not provided."
 fi
-
-
