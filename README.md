@@ -1,4 +1,4 @@
-# PDF To JSON Data Extracting using OCR
+# Image-based PDF To JSON Data Extracting using OCR
 
 ## Getting Started
 
